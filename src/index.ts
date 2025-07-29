@@ -7,6 +7,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJsdoc from 'swagger-jsdoc';
 
 // Import database connection
 import { db } from './database/connection';
@@ -68,8 +70,284 @@ app.get('/health', (req: express.Request, res: express.Response) => {
   });
 });
 
-// API documentation endpoint
-app.get('/docs', (req: express.Request, res: express.Response) => {
+// Swagger definition
+const swaggerDefinition = {
+  openapi: '3.0.0',
+  info: {
+    title: 'RudderStack Data Catalog API',
+    version: '1.0.0',
+    description: 'API documentation for the RudderStack Data Catalog',
+  },
+  servers: [
+    {
+      url: `http://localhost:${PORT}`,
+      description: 'Development server',
+    },
+  ],
+  components: {
+    schemas: {
+      Event: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          name: { type: 'string' },
+          type: { type: 'string', enum: ['track', 'identify', 'alias', 'screen', 'page'] },
+          description: { type: 'string' },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' },
+        },
+        required: ['id', 'name', 'type', 'description', 'created_at', 'updated_at'],
+      },
+      CreateEventRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          type: { type: 'string', enum: ['track', 'identify', 'alias', 'screen', 'page'] },
+          description: { type: 'string' },
+        },
+        required: ['name', 'type', 'description'],
+      },
+      UpdateEventRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          type: { type: 'string', enum: ['track', 'identify', 'alias', 'screen', 'page'] },
+          description: { type: 'string' },
+        },
+      },
+      ApiResponseEvent: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean' },
+          data: { $ref: '#/components/schemas/Event' },
+          error: { type: 'string' },
+          message: { type: 'string' },
+        },
+      },
+      PaginatedEventResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean' },
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Event' },
+          },
+          pagination: {
+            type: 'object',
+            properties: {
+              page: { type: 'integer' },
+              limit: { type: 'integer' },
+              total: { type: 'integer' },
+              totalPages: { type: 'integer' },
+            },
+          },
+        },
+      },
+      Property: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          name: { type: 'string' },
+          type: { type: 'string', enum: ['string', 'number', 'boolean'] },
+          description: { type: 'string' },
+          validation_rules: { type: 'object', nullable: true },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' },
+        },
+        required: ['id', 'name', 'type', 'description', 'created_at', 'updated_at'],
+      },
+      CreatePropertyRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          type: { type: 'string', enum: ['string', 'number', 'boolean'] },
+          description: { type: 'string' },
+          validation_rules: { type: 'object' },
+        },
+        required: ['name', 'type', 'description'],
+      },
+      UpdatePropertyRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          type: { type: 'string', enum: ['string', 'number', 'boolean'] },
+          description: { type: 'string' },
+          validation_rules: { type: 'object' },
+        },
+      },
+      ApiResponseProperty: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean' },
+          data: { $ref: '#/components/schemas/Property' },
+          error: { type: 'string' },
+          message: { type: 'string' },
+        },
+      },
+      PaginatedPropertyResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean' },
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Property' },
+          },
+          pagination: {
+            type: 'object',
+            properties: {
+              page: { type: 'integer' },
+              limit: { type: 'integer' },
+              total: { type: 'integer' },
+              totalPages: { type: 'integer' },
+            },
+          },
+        },
+      },
+      TrackingPlan: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          name: { type: 'string' },
+          description: { type: 'string' },
+          events: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                description: { type: 'string' },
+                properties: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      type: { type: 'string', enum: ['string', 'number', 'boolean'] },
+                      required: { type: 'boolean' },
+                      description: { type: 'string' },
+                    },
+                    required: ['name', 'type', 'required', 'description'],
+                  },
+                },
+                additionalProperties: { type: 'boolean' },
+              },
+              required: ['name', 'description', 'properties', 'additionalProperties'],
+            },
+          },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' },
+        },
+        required: ['id', 'name', 'description', 'events', 'created_at', 'updated_at'],
+      },
+      CreateTrackingPlanRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          events: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                description: { type: 'string' },
+                properties: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      type: { type: 'string', enum: ['string', 'number', 'boolean'] },
+                      required: { type: 'boolean' },
+                      description: { type: 'string' },
+                    },
+                    required: ['name', 'type', 'required', 'description'],
+                  },
+                },
+                additionalProperties: { type: 'boolean' },
+              },
+              required: ['name', 'description', 'properties', 'additionalProperties'],
+            },
+          },
+        },
+        required: ['name', 'description', 'events'],
+      },
+      UpdateTrackingPlanRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          events: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                description: { type: 'string' },
+                properties: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      type: { type: 'string', enum: ['string', 'number', 'boolean'] },
+                      required: { type: 'boolean' },
+                      description: { type: 'string' },
+                    },
+                    required: ['name', 'type', 'required', 'description'],
+                  },
+                },
+                additionalProperties: { type: 'boolean' },
+              },
+              required: ['name', 'description', 'properties', 'additionalProperties'],
+            },
+          },
+        },
+      },
+      ApiResponseTrackingPlan: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean' },
+          data: { $ref: '#/components/schemas/TrackingPlan' },
+          error: { type: 'string' },
+          message: { type: 'string' },
+        },
+      },
+      PaginatedTrackingPlanResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean' },
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/TrackingPlan' },
+          },
+          pagination: {
+            type: 'object',
+            properties: {
+              page: { type: 'integer' },
+              limit: { type: 'integer' },
+              total: { type: 'integer' },
+              totalPages: { type: 'integer' },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+const swaggerOptions = {
+  swaggerDefinition,
+  apis: ['./src/routes/*.ts'], // You can add more files for endpoint docs
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+// Serve Swagger UI at /docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// (Optional) Move previous JSON docs to /docs/json
+app.get('/docs/json', (req: express.Request, res: express.Response) => {
   res.status(HTTP_STATUS_CODES.OK).json({
     success: true,
     message: 'API Documentation',

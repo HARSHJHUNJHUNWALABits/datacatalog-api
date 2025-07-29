@@ -1,5 +1,134 @@
 /**
  * TrackingPlan routes configuration
+ *
+ * @openapi
+ * /api/v1/tracking-plans:
+ *   get:
+ *     summary: Get all tracking plans with pagination and filtering
+ *     tags:
+ *       - TrackingPlans
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by tracking plan name
+ *     responses:
+ *       200:
+ *         description: List of tracking plans
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedTrackingPlanResponse'
+ *   post:
+ *     summary: Create a new tracking plan
+ *     tags:
+ *       - TrackingPlans
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateTrackingPlanRequest'
+ *     responses:
+ *       201:
+ *         description: Tracking plan created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseTrackingPlan'
+ *       409:
+ *         description: Tracking plan already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseTrackingPlan'
+ * /api/v1/tracking-plans/{id}:
+ *   get:
+ *     summary: Get tracking plan by ID
+ *     tags:
+ *       - TrackingPlans
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Tracking plan found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseTrackingPlan'
+ *       404:
+ *         description: Tracking plan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseTrackingPlan'
+ *   put:
+ *     summary: Update an existing tracking plan
+ *     tags:
+ *       - TrackingPlans
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateTrackingPlanRequest'
+ *     responses:
+ *       200:
+ *         description: Tracking plan updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseTrackingPlan'
+ *       404:
+ *         description: Tracking plan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseTrackingPlan'
+ *   delete:
+ *     summary: Delete a tracking plan
+ *     tags:
+ *       - TrackingPlans
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Tracking plan deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseTrackingPlan'
+ *       404:
+ *         description: Tracking plan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseTrackingPlan'
  */
 import { Router, Request, Response } from 'express';
 import { TrackingPlanController } from '../controllers/TrackingPlanController';
