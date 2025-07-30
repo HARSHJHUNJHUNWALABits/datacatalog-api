@@ -1,78 +1,154 @@
 # RudderStack Data Catalog API
 
-A simplified version of RudderStack's Data Catalog API service that manages events, properties, and tracking plans for data governance and quality assurance.
+A comprehensive REST API for managing events, properties, and tracking plans with full Swagger/OpenAPI documentation, validation middleware, and automated database setup.
 
 ## 🚀 Features
 
-- **Events Management**: Create, read, update, and delete events with validation
-- **Properties Management**: Manage event properties with type validation
-- **Tracking Plans**: Create comprehensive tracking plans with automatic event/property creation
-- **RESTful API**: Clean, well-documented REST endpoints
-- **Data Validation**: Comprehensive input validation using Joi
-- **Database Integration**: SQLite with Knex.js query builder
-- **Docker Support**: Containerized application for easy deployment
-- **TypeScript**: Full TypeScript implementation with strict typing
+- **📊 Events Management**: CRUD operations for events with comprehensive validation
+- **🔧 Properties Management**: Manage event properties with type validation and custom rules
+- **📋 Tracking Plans**: Create comprehensive tracking plans with automatic event/property creation
+- **📚 Swagger Documentation**: Interactive API documentation with OpenAPI 3.0 specification
+- **✅ Input Validation**: Comprehensive validation using Joi with detailed error messages
+- **🏗️ Clean Architecture**: SOLID principles with separation of concerns
+- **⚡ Performance Optimized**: Promise.all for parallel operations
+- **🧪 Full Test Coverage**: Comprehensive unit tests with Jest
+- **🐳 Docker Support**: Containerized application for easy deployment
+- **📝 TypeScript**: Full TypeScript implementation with strict typing
 
 ## 🏗️ Architecture
 
-The application follows SOLID principles and clean architecture patterns:
+The application follows clean architecture patterns with clear separation of concerns:
 
-- **Controllers**: Handle HTTP requests and responses
-- **Services**: Business logic and validation
-- **Repositories**: Data access layer with Knex.js
-- **Types**: TypeScript interfaces and type definitions
-- **Utils**: Validation and helper functions
-- **Constants**: Application constants and configuration
+```
+src/
+├── controllers/     # HTTP request/response handling
+├── services/       # Business logic layer
+├── dal/           # Data Access Layer (repositories)
+├── routes/        # Express route definitions
+├── middleware/    # Custom middleware (validation, etc.)
+├── utils/         # Utility functions (error handling, etc.)
+├── types/         # TypeScript type definitions
+├── constants/     # Application constants
+└── database/      # Database configuration and migrations
+```
 
 ## 📋 Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
-- Docker (optional)
+- **Node.js 18+** 
+- **npm or yarn**
+- **PostgreSQL** (optional, SQLite is default)
+- **Docker** (optional)
 
-## 🛠️ Installation
+## 🛠️ Quick Start
 
-### Local Development
+### Option 1: Automated Setup (Recommended)
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd datacatalog-api
-   ```
+```bash
+# Clone the repository
+git clone <repository-url>
+cd datacatalog-api
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+# Run the automated setup script
+node scripts/setup-database.js
 
-3. **Set up environment variables**
-   ```bash
-   cp env.example .env
-   # Edit .env with your configuration
-   ```
+# Start the development server
+npm run dev
+```
 
-4. **Run database migrations**
-   ```bash
-   npm run migrate
-   ```
+### Option 2: Manual Setup
 
-5. **Start the development server**
-   ```bash
-   npm run dev
-   ```
+```bash
+# Clone the repository
+git clone <repository-url>
+cd datacatalog-api
 
-### Docker Deployment
+# Install dependencies
+npm install
 
-1. **Build and run with Docker Compose**
-   ```bash
-   docker-compose up --build
-   ```
+# Set up environment
+cp env.example .env
 
-2. **Or build and run individually**
-   ```bash
-   docker build -t datacatalog-api .
-   docker run -p 3000:3000 datacatalog-api
-   ```
+# Run database migrations
+npm run migrate
+
+# Start the development server
+npm run dev
+```
+
+### Option 3: Docker Setup
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd datacatalog-api
+
+# Build and run with Docker Compose
+docker-compose up --build
+```
+
+## 📚 API Documentation
+
+### Swagger UI
+
+Once the server is running, access the interactive API documentation at:
+
+```
+http://localhost:3000/docs
+```
+
+The Swagger UI provides:
+- **Interactive API Explorer**: Test endpoints directly from the browser
+- **Request/Response Examples**: See sample data for all endpoints
+- **Authentication**: (Future feature)
+- **Error Codes**: Complete list of possible responses
+- **Schema Validation**: Real-time validation of request bodies
+
+### API Base URL
+
+```
+http://localhost:3000/api/v1
+```
+
+## 🔧 Database Setup
+
+### Automated Setup Script
+
+The project includes a comprehensive setup script that handles:
+
+```bash
+# SQLite (default)
+node scripts/setup-database.js
+
+# PostgreSQL
+node scripts/setup-database.js --postgres
+
+# Custom environment
+node scripts/setup-database.js --env production
+```
+
+### Manual Database Setup
+
+#### SQLite (Default)
+```bash
+# Create data directory
+mkdir -p data
+
+# Run migrations
+npm run migrate
+```
+
+#### PostgreSQL
+```bash
+# Install PostgreSQL (if not installed)
+# macOS: brew install postgresql
+# Ubuntu: sudo apt-get install postgresql
+
+# Create database
+createdb rudderstack_data_catalog
+
+# Run migrations
+npm run migrate
+```
 
 ## 🧪 Testing
 
@@ -85,159 +161,91 @@ npm run test:watch
 
 # Run tests with coverage
 npm run test -- --coverage
+
+# Run specific test file
+npm test -- EventService.test.ts
 ```
 
-## 📚 API Documentation
-
-### Base URL
-```
-http://localhost:3000/api/v1
-```
+## 📖 API Endpoints
 
 ### Events
 
-#### Create Event
-```http
-POST /events
-Content-Type: application/json
-
-{
-  "name": "Product Clicked",
-  "type": "track",
-  "description": "User clicked on a product"
-}
-```
-
-#### Get All Events
-```http
-GET /events?page=1&limit=10&type=track&search=product
-```
-
-#### Get Event by ID
-```http
-GET /events/:id
-```
-
-#### Update Event
-```http
-PUT /events/:id
-Content-Type: application/json
-
-{
-  "name": "Product Clicked",
-  "type": "track",
-  "description": "Updated description"
-}
-```
-
-#### Delete Event
-```http
-DELETE /events/:id
-```
+| Method | Endpoint | Description | Validation |
+|--------|----------|-------------|------------|
+| `GET` | `/events` | Get all events with pagination | Query params |
+| `POST` | `/events` | Create a new event | Request body |
+| `GET` | `/events/:id` | Get event by ID | Path param |
+| `PUT` | `/events/:id` | Update an event | Path param + body |
+| `DELETE` | `/events/:id` | Delete an event | Path param |
 
 ### Properties
 
-#### Create Property
-```http
-POST /properties
-Content-Type: application/json
-
-{
-  "name": "price",
-  "type": "number",
-  "description": "Product price",
-  "validation_rules": {
-    "minimum": 0
-  }
-}
-```
-
-#### Get All Properties
-```http
-GET /properties?page=1&limit=10&type=number&search=price
-```
-
-#### Get Property by ID
-```http
-GET /properties/:id
-```
-
-#### Update Property
-```http
-PUT /properties/:id
-Content-Type: application/json
-
-{
-  "name": "price",
-  "type": "number",
-  "description": "Updated description"
-}
-```
-
-#### Delete Property
-```http
-DELETE /properties/:id
-```
+| Method | Endpoint | Description | Validation |
+|--------|----------|-------------|------------|
+| `GET` | `/properties` | Get all properties with pagination | Query params |
+| `POST` | `/properties` | Create a new property | Request body |
+| `GET` | `/properties/:id` | Get property by ID | Path param |
+| `PUT` | `/properties/:id` | Update a property | Path param + body |
+| `DELETE` | `/properties/:id` | Delete a property | Path param |
 
 ### Tracking Plans
 
-#### Create Tracking Plan
-```http
-POST /tracking-plans
-Content-Type: application/json
+| Method | Endpoint | Description | Validation |
+|--------|----------|-------------|------------|
+| `GET` | `/tracking-plans` | Get all tracking plans with pagination | Query params |
+| `POST` | `/tracking-plans` | Create a new tracking plan | Request body |
+| `GET` | `/tracking-plans/:id` | Get tracking plan by ID | Path param |
+| `PUT` | `/tracking-plans/:id` | Update a tracking plan | Path param + body |
+| `DELETE` | `/tracking-plans/:id` | Delete a tracking plan | Path param |
 
+## 🔍 Validation Rules
+
+### Event Validation
+```typescript
 {
-  "name": "Purchase Flow",
-  "description": "Events related to the purchase funnel",
-  "events": [
-    {
-      "name": "Product Viewed",
-      "description": "User viewed a product detail page",
-      "properties": [
-        {
-          "name": "product_id",
-          "type": "string",
-          "required": true,
-          "description": "Unique identifier for the product"
-        },
-        {
-          "name": "price",
-          "type": "number",
-          "required": true,
-          "description": "Product price"
-        }
-      ],
-      "additionalProperties": true
-    }
-  ]
+  name: string (required, max 100 chars),
+  type: "track" | "identify" | "alias" | "screen" | "page" (required),
+  description: string (required, max 500 chars)
 }
 ```
 
-#### Get All Tracking Plans
-```http
-GET /tracking-plans?page=1&limit=10&search=purchase
-```
-
-#### Get Tracking Plan by ID
-```http
-GET /tracking-plans/:id
-```
-
-#### Update Tracking Plan
-```http
-PUT /tracking-plans/:id
-Content-Type: application/json
-
+### Property Validation
+```typescript
 {
-  "name": "Updated Purchase Flow",
-  "description": "Updated description"
+  name: string (required, max 100 chars),
+  type: "string" | "number" | "boolean" (required),
+  description: string (required, max 500 chars),
+  validation_rules: object (optional)
 }
 ```
 
-#### Delete Tracking Plan
-```http
-DELETE /tracking-plans/:id
+### Tracking Plan Validation
+```typescript
+{
+  name: string (required, max 200 chars),
+  description: string (required, max 500 chars),
+  events: array (required, min 1 event)
+}
 ```
+
+## 🎯 Error Handling
+
+The API provides consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": "ERROR_TYPE",
+  "message": "Human readable error message",
+  "details": [] // Optional validation errors
+}
+```
+
+### Common Error Types
+- `VALIDATION_ERROR`: Input validation failed
+- `NOT_FOUND`: Resource not found
+- `ALREADY_EXISTS`: Resource already exists
+- `INTERNAL_ERROR`: Server error
 
 ## 🔧 Configuration
 
@@ -249,6 +257,7 @@ DELETE /tracking-plans/:id
 | `PORT` | Server port | `3000` |
 | `DATABASE_URL` | Database connection string | `./data/dev.sqlite3` |
 | `LOG_LEVEL` | Logging level | `info` |
+| `API_BASE_PATH` | API base path | `/api/v1` |
 
 ### Event Types
 - `track` - User action tracking
@@ -264,41 +273,36 @@ DELETE /tracking-plans/:id
 
 ## 🏛️ Design Decisions
 
-### 1. Architecture Pattern
-- **Clean Architecture**: Separation of concerns with clear boundaries
-- **SOLID Principles**: Single responsibility, dependency inversion, etc.
-- **Repository Pattern**: Abstract data access layer
+### 1. Validation Strategy
+- **Router Layer Validation**: Input validation happens at the router layer using middleware
+- **Joi Schema Validation**: Comprehensive schema validation with detailed error messages
+- **TypeScript Types**: Compile-time type checking for additional safety
 
-### 2. Database Choice
-- **SQLite**: Lightweight, file-based database for simplicity
-- **Knex.js**: Query builder for type safety and flexibility
-- **Migrations**: Version-controlled database schema changes
+### 2. Error Handling
+- **Centralized Error Handler**: Consistent error response format across all endpoints
+- **Detailed Error Messages**: User-friendly error messages with field-specific details
+- **HTTP Status Codes**: Proper status code usage (400, 404, 409, 500)
 
-### 3. Validation Strategy
-- **Joi**: Comprehensive schema validation
-- **TypeScript**: Compile-time type checking
-- **Runtime Validation**: Input sanitization and business rule enforcement
+### 3. Performance Optimization
+- **Promise.all**: Parallel execution for independent operations
+- **Efficient Queries**: Optimized database queries with proper indexing
+- **Connection Pooling**: Database connection management
 
-### 4. Error Handling
-- **Consistent Response Format**: Standardized API responses
-- **HTTP Status Codes**: Proper status code usage
-- **Error Logging**: Structured error logging
-
-### 5. Security
-- **Helmet**: Security headers
-- **Rate Limiting**: Protection against abuse
-- **CORS**: Cross-origin resource sharing
-- **Input Validation**: Prevent injection attacks
+### 4. API Documentation
+- **Swagger/OpenAPI 3.0**: Interactive API documentation
+- **Comprehensive Schemas**: Complete request/response schemas
+- **Example Data**: Real-world examples for all endpoints
 
 ## 🚀 Deployment
 
 ### Production Considerations
 
-1. **Database**: Consider PostgreSQL for production
-2. **Environment**: Use proper environment variables
-3. **Logging**: Implement structured logging
+1. **Database**: Use PostgreSQL for production workloads
+2. **Environment**: Configure proper environment variables
+3. **Logging**: Implement structured logging (Winston/Pino)
 4. **Monitoring**: Add health checks and metrics
-5. **Security**: Enable HTTPS and additional security measures
+5. **Security**: Enable HTTPS, rate limiting, and CORS
+6. **Caching**: Consider Redis for performance optimization
 
 ### Docker Production
 
@@ -310,37 +314,53 @@ docker build -t datacatalog-api:prod .
 docker run -d \
   -p 3000:3000 \
   -e NODE_ENV=production \
-  -e DATABASE_URL=/app/data/prod.sqlite3 \
+  -e DATABASE_URL=postgresql://user:pass@host:5432/db \
   -v $(pwd)/data:/app/data \
   datacatalog-api:prod
 ```
 
 ## 🔮 Future Improvements
 
-1. **Advanced Validation**: Custom validation rules for properties
-2. **API Documentation**: OpenAPI/Swagger integration
-3. **Authentication**: JWT-based authentication
-4. **Caching**: Redis for performance optimization
-5. **Monitoring**: Prometheus metrics and Grafana dashboards
-6. **Testing**: More comprehensive test coverage
-7. **CI/CD**: GitHub Actions for automated testing and deployment
+1. **Authentication & Authorization**: JWT-based authentication
+2. **Rate Limiting**: API rate limiting with Redis
+3. **Caching**: Redis caching for frequently accessed data
+4. **Monitoring**: Prometheus metrics and Grafana dashboards
+5. **Advanced Validation**: Custom validation rules for properties
+6. **Webhooks**: Event-driven webhooks for integrations
+7. **Bulk Operations**: Batch create/update operations
+8. **Search**: Full-text search capabilities
+9. **Audit Logging**: Track all changes with audit trail
+10. **API Versioning**: Support for multiple API versions
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add tests for new functionality
-5. Submit a pull request
+5. Ensure all tests pass (`npm test`)
+6. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+### Development Guidelines
+
+- **Conventional Commits**: Use conventional commit messages
+- **TypeScript**: Maintain strict typing
+- **Testing**: Add tests for new features
+- **Documentation**: Update README and API docs
+- **Code Style**: Follow existing code patterns
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
-For questions or issues, please create an issue in the repository.
+- **Issues**: Create an issue in the repository
+- **Documentation**: Check the Swagger UI at `/docs`
+- **Examples**: See the test files for usage examples
 
 ---
 
-**Note**: This is a simplified implementation for demonstration purposes. Production use would require additional security, monitoring, and scalability considerations. 
+**Note**: This is a production-ready implementation with comprehensive validation, testing, and documentation. The architecture follows industry best practices and is designed for scalability and maintainability. 

@@ -13,7 +13,10 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "migrate": "knex migrate:latest",
     "migrate:make": "knex migrate:make",
-    "seed": "knex seed:run"
+    "seed": "knex seed:run",
+    "setup": "node scripts/setup-database.js",
+    "setup:postgres": "node scripts/setup-database.js --postgres",
+    "setup:sqlite": "node scripts/setup-database.js --sqlite"
   },
   "keywords": [
     "rudderstack",
