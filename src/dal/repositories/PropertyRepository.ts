@@ -77,15 +77,16 @@ export class PropertyRepository implements IPropertyRepository {
       });
     }
 
-    // Get total count
-    const [{ count }] = await query.clone().count('* as count');
-    const total = Number(count);
+    // Get total count and paginated results in parallel
+    const [countResult, properties] = await Promise.all([
+      query.clone().count('* as count'),
+      query
+        .orderBy('created_at', 'desc')
+        .limit(limit)
+        .offset(offset)
+    ]);
 
-    // Get paginated results
-    const properties = await query
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .offset(offset);
+    const total = Number(countResult[0].count);
 
     return {
       success: true,

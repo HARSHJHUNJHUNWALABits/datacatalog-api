@@ -9,4 +9,4 @@ const dbConfig = config[environment];
 
 export const db = knex(dbConfig);
 
-export default db; 
+export default db;
