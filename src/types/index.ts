@@ -4,6 +4,9 @@
 
 import { EventType, PropertyType } from '../constants';
 
+// Re-export auth types
+export * from './auth';
+
 // Base entity interface
 export interface BaseEntity {
   id: number;

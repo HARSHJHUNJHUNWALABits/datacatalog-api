@@ -31,6 +31,13 @@ export const ERROR_MESSAGES = {
   INVALID_PROPERTY_TYPE: 'Invalid property type. Must be one of: string, number, boolean',
   VALIDATION_ERROR: 'Validation error',
   INTERNAL_ERROR: 'Internal server error',
+  UNAUTHORIZED: 'Unauthorized',
+  FORBIDDEN: 'Forbidden',
+  USER_NOT_FOUND: 'User not found',
+  USER_ALREADY_EXISTS: 'User already exists',
+  INVALID_CREDENTIALS: 'Invalid credentials',
+  TOKEN_EXPIRED: 'Token expired',
+  INVALID_TOKEN: 'Invalid token',
 } as const;
 
 export const DATABASE_CONFIG = {

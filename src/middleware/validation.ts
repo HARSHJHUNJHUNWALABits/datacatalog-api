@@ -75,4 +75,17 @@ export const validateIdParam = validateRequest(
     id: require('joi').number().integer().min(1).required(),
   }),
   'params'
+);
+
+/**
+ * Validation middleware for token generation
+ */
+export const validateTokenGeneration = validateRequest(
+  require('joi').object({
+    api_key: require('joi').string().required(),
+    permissions: require('joi').array().items(
+      require('joi').string().valid('read', 'write', 'delete')
+    ).optional(),
+  }),
+  'body'
 ); 

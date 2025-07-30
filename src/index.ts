@@ -32,6 +32,7 @@ import { TrackingPlanController } from './controllers/TrackingPlanController';
 import { createEventRoutes } from './routes/eventRoutes';
 import { createPropertyRoutes } from './routes/propertyRoutes';
 import { createTrackingPlanRoutes } from './routes/trackingPlanRoutes';
+import { createAuthRoutes } from './routes/authRoutes';
 
 // Import constants
 import { API_ENDPOINTS, HTTP_STATUS_CODES } from './constants';
@@ -85,6 +86,13 @@ const swaggerDefinition = {
     },
   ],
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+    },
     schemas: {
       Event: {
         type: 'object',
@@ -400,6 +408,7 @@ const trackingPlanController = new TrackingPlanController(trackingPlanService);
 app.use('/api/v1', createEventRoutes(eventController));
 app.use('/api/v1', createPropertyRoutes(propertyController));
 app.use('/api/v1', createTrackingPlanRoutes(trackingPlanController));
+app.use('/api/v1/auth', createAuthRoutes());
 
 // 404 handler
 app.use('*', (req: express.Request, res: express.Response) => {

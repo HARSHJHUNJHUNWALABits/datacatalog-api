@@ -139,24 +139,25 @@ import {
   validateIdParam, 
   validatePagination 
 } from '../middleware/validation';
+import { authenticateJwt, requireRead, requireWrite, requireDelete } from '../middleware/jwt';
 
 export function createTrackingPlanRoutes(trackingPlanController: TrackingPlanController): Router {
   const router = Router();
 
   // GET /api/v1/tracking-plans - Get all tracking plans with pagination and filtering
-  router.get(API_ENDPOINTS.TRACKING_PLANS, validatePagination, (req: Request, res: Response) => trackingPlanController.getTrackingPlans(req, res));
+  router.get(API_ENDPOINTS.TRACKING_PLANS, authenticateJwt, requireRead, validatePagination, (req: Request, res: Response) => trackingPlanController.getTrackingPlans(req, res));
 
   // POST /api/v1/tracking-plans - Create a new tracking plan
-  router.post(API_ENDPOINTS.TRACKING_PLANS, validateCreateTrackingPlan, (req: Request, res: Response) => trackingPlanController.createTrackingPlan(req, res));
+  router.post(API_ENDPOINTS.TRACKING_PLANS, authenticateJwt, requireWrite, validateCreateTrackingPlan, (req: Request, res: Response) => trackingPlanController.createTrackingPlan(req, res));
 
   // GET /api/v1/tracking-plans/:id - Get tracking plan by ID
-  router.get(`${API_ENDPOINTS.TRACKING_PLANS}/:id`, validateIdParam, (req: Request, res: Response) => trackingPlanController.getTrackingPlanById(req, res));
+  router.get(`${API_ENDPOINTS.TRACKING_PLANS}/:id`, authenticateJwt, requireRead, validateIdParam, (req: Request, res: Response) => trackingPlanController.getTrackingPlanById(req, res));
 
   // PUT /api/v1/tracking-plans/:id - Update an existing tracking plan
-  router.put(`${API_ENDPOINTS.TRACKING_PLANS}/:id`, validateIdParam, validateUpdateTrackingPlan, (req: Request, res: Response) => trackingPlanController.updateTrackingPlan(req, res));
+  router.put(`${API_ENDPOINTS.TRACKING_PLANS}/:id`, authenticateJwt, requireWrite, validateIdParam, validateUpdateTrackingPlan, (req: Request, res: Response) => trackingPlanController.updateTrackingPlan(req, res));
 
   // DELETE /api/v1/tracking-plans/:id - Delete a tracking plan
-  router.delete(`${API_ENDPOINTS.TRACKING_PLANS}/:id`, validateIdParam, (req: Request, res: Response) => trackingPlanController.deleteTrackingPlan(req, res));
+  router.delete(`${API_ENDPOINTS.TRACKING_PLANS}/:id`, authenticateJwt, requireDelete, validateIdParam, (req: Request, res: Response) => trackingPlanController.deleteTrackingPlan(req, res));
 
   return router;
 } 

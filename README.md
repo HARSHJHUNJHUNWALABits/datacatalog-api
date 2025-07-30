@@ -109,6 +109,51 @@ The Swagger UI provides:
 http://localhost:3000/api/v1
 ```
 
+## 🔐 JWT Authentication
+
+The API uses JWT tokens for authentication. All endpoints (except health check) require a valid JWT token.
+
+### **Generate Test Tokens**
+
+```bash
+# Full access token (read, write, delete)
+npm run token:full
+
+# Read-only token
+npm run token:read
+
+# Custom token
+npm run token
+```
+
+### **API Token Generation**
+
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"api_key": "my-key", "permissions": ["read", "write"]}'
+```
+
+### **Using Tokens**
+
+```bash
+# Include token in Authorization header
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:3000/api/v1/events
+```
+
+### **Swagger UI Authentication**
+
+1. Open `http://localhost:3000/docs`
+2. Click the **"Authorize"** button
+3. Enter your JWT token (without "Bearer ")
+4. Test all endpoints interactively
+
+### **Permission Levels**
+
+- **`read`**: Can access GET endpoints
+- **`write`**: Can access POST/PUT endpoints  
+- **`delete`**: Can access DELETE endpoints
+
 ## 🔧 Database Setup
 
 ### Automated Setup Script
@@ -166,37 +211,53 @@ npm run test -- --coverage
 npm test -- EventService.test.ts
 ```
 
+### **Quick API Testing**
+
+```bash
+# 1. Generate a test token
+npm run token:full
+
+# 2. Test health endpoint (no auth required)
+curl http://localhost:3000/health
+
+# 3. Test protected endpoint with token
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:3000/api/v1/events
+
+# 4. Test without token (should return 401)
+curl http://localhost:3000/api/v1/events
+```
+
 ## 📖 API Endpoints
 
 ### Events
 
-| Method | Endpoint | Description | Validation |
-|--------|----------|-------------|------------|
-| `GET` | `/events` | Get all events with pagination | Query params |
-| `POST` | `/events` | Create a new event | Request body |
-| `GET` | `/events/:id` | Get event by ID | Path param |
-| `PUT` | `/events/:id` | Update an event | Path param + body |
-| `DELETE` | `/events/:id` | Delete an event | Path param |
+| Method | Endpoint | Description | Auth | Validation |
+|--------|----------|-------------|------|------------|
+| `GET` | `/events` | Get all events with pagination | `read` | Query params |
+| `POST` | `/events` | Create a new event | `write` | Request body |
+| `GET` | `/events/:id` | Get event by ID | `read` | Path param |
+| `PUT` | `/events/:id` | Update an event | `write` | Path param + body |
+| `DELETE` | `/events/:id` | Delete an event | `delete` | Path param |
 
 ### Properties
 
-| Method | Endpoint | Description | Validation |
-|--------|----------|-------------|------------|
-| `GET` | `/properties` | Get all properties with pagination | Query params |
-| `POST` | `/properties` | Create a new property | Request body |
-| `GET` | `/properties/:id` | Get property by ID | Path param |
-| `PUT` | `/properties/:id` | Update a property | Path param + body |
-| `DELETE` | `/properties/:id` | Delete a property | Path param |
+| Method | Endpoint | Description | Auth | Validation |
+|--------|----------|-------------|------|------------|
+| `GET` | `/properties` | Get all properties with pagination | `read` | Query params |
+| `POST` | `/properties` | Create a new property | `write` | Request body |
+| `GET` | `/properties/:id` | Get property by ID | `read` | Path param |
+| `PUT` | `/properties/:id` | Update a property | `write` | Path param + body |
+| `DELETE` | `/properties/:id` | Delete a property | `delete` | Path param |
 
 ### Tracking Plans
 
-| Method | Endpoint | Description | Validation |
-|--------|----------|-------------|------------|
-| `GET` | `/tracking-plans` | Get all tracking plans with pagination | Query params |
-| `POST` | `/tracking-plans` | Create a new tracking plan | Request body |
-| `GET` | `/tracking-plans/:id` | Get tracking plan by ID | Path param |
-| `PUT` | `/tracking-plans/:id` | Update a tracking plan | Path param + body |
-| `DELETE` | `/tracking-plans/:id` | Delete a tracking plan | Path param |
+| Method | Endpoint | Description | Auth | Validation |
+|--------|----------|-------------|------|------------|
+| `GET` | `/tracking-plans` | Get all tracking plans with pagination | `read` | Query params |
+| `POST` | `/tracking-plans` | Create a new tracking plan | `write` | Request body |
+| `GET` | `/tracking-plans/:id` | Get tracking plan by ID | `read` | Path param |
+| `PUT` | `/tracking-plans/:id` | Update a tracking plan | `write` | Path param + body |
+| `DELETE` | `/tracking-plans/:id` | Delete a tracking plan | `delete` | Path param |
 
 ## 🔍 Validation Rules
 
