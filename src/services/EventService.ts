@@ -4,8 +4,15 @@
  */
 import { IEventRepository } from '../dal/interfaces/IEventRepository';
 import { Event, CreateEventRequest, UpdateEventRequest, EventQueryParams, PaginatedResponse, ApiResponse } from '../types';
-import { validateEvent } from '../utils/validation';
-import { ERROR_MESSAGES, HTTP_STATUS_CODES } from '../constants';
+import { ERROR_MESSAGES } from '../constants';
+import { 
+  handleAsyncOperationWithMessage, 
+  handleAsyncOperationWithNullCheck, 
+  handleAsyncOperation, 
+  handleBooleanOperation,
+  handleAsyncOperationWithNullCheckAndMessage,
+  createErrorResponse
+} from '../utils/errorHandler';
 
 export class EventService {
   constructor(private readonly eventRepository: IEventRepository) {}
@@ -17,16 +24,6 @@ export class EventService {
    */
   async createEvent(eventData: CreateEventRequest): Promise<ApiResponse<Event>> {
     try {
-      // Validate input data
-      const validation = validateEvent(eventData);
-      if (!validation.isValid) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.VALIDATION_ERROR,
-          message: validation.errors.map(err => `${err.field}: ${err.message}`).join(', '),
-        };
-      }
-
       // Check if event already exists
       const existingEvent = await this.eventRepository.findByNameAndType(eventData.name, eventData.type);
       if (existingEvent) {
@@ -37,19 +34,12 @@ export class EventService {
       }
 
       // Create event
-      const event = await this.eventRepository.create(eventData);
-
-      return {
-        success: true,
-        data: event,
-        message: 'Event created successfully',
-      };
+      return await handleAsyncOperationWithMessage(
+        () => this.eventRepository.create(eventData),
+        'Event created successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<Event>(error);
     }
   }
 
@@ -59,27 +49,10 @@ export class EventService {
    * @returns Promise<ApiResponse<Event>> - API response with event
    */
   async getEventById(id: number): Promise<ApiResponse<Event>> {
-    try {
-      const event = await this.eventRepository.findById(id);
-      
-      if (!event) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.EVENT_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        data: event,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return await handleAsyncOperationWithNullCheck(
+      () => this.eventRepository.findById(id),
+      ERROR_MESSAGES.EVENT_NOT_FOUND
+    );
   }
 
   /**
@@ -88,20 +61,9 @@ export class EventService {
    * @returns Promise<ApiResponse<PaginatedResponse<Event>>> - API response with paginated events
    */
   async getEvents(params: EventQueryParams): Promise<ApiResponse<PaginatedResponse<Event>>> {
-    try {
-      const events = await this.eventRepository.findAll(params);
-
-      return {
-        success: true,
-        data: events,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return await handleAsyncOperation(
+      () => this.eventRepository.findAll(params)
+    );
   }
 
   /**
@@ -112,18 +74,17 @@ export class EventService {
    */
   async updateEvent(id: number, eventData: UpdateEventRequest): Promise<ApiResponse<Event>> {
     try {
-      // Validate input data
-      const validation = validateEvent(eventData);
-      if (!validation.isValid) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.VALIDATION_ERROR,
-          message: validation.errors.map(err => `${err.field}: ${err.message}`).join(', '),
-        };
-      }
+      // Check if event exists and if there are conflicts in parallel
+      const [existingEvent, conflictingEvent] = await Promise.all([
+        this.eventRepository.findById(id),
+        (eventData.name || eventData.type) ? 
+          this.eventRepository.findByNameAndType(
+            eventData.name || '', 
+            eventData.type || ''
+          ) : 
+          Promise.resolve(null)
+      ]);
 
-      // Check if event exists
-      const existingEvent = await this.eventRepository.findById(id);
       if (!existingEvent) {
         return {
           success: false,
@@ -137,7 +98,6 @@ export class EventService {
         const newType = eventData.type || existingEvent.type;
         
         if (newName !== existingEvent.name || newType !== existingEvent.type) {
-          const conflictingEvent = await this.eventRepository.findByNameAndType(newName, newType);
           if (conflictingEvent && conflictingEvent.id !== id) {
             return {
               success: false,
@@ -148,26 +108,13 @@ export class EventService {
       }
 
       // Update event
-      const updatedEvent = await this.eventRepository.update(id, eventData);
-      
-      if (!updatedEvent) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.EVENT_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        data: updatedEvent,
-        message: 'Event updated successfully',
-      };
+      return await handleAsyncOperationWithNullCheckAndMessage(
+        () => this.eventRepository.update(id, eventData),
+        ERROR_MESSAGES.EVENT_NOT_FOUND,
+        'Event updated successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<Event>(error);
     }
   }
 
@@ -188,25 +135,13 @@ export class EventService {
       }
 
       // Delete event
-      const deleted = await this.eventRepository.delete(id);
-      
-      if (!deleted) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.EVENT_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        message: 'Event deleted successfully',
-      };
+      return await handleBooleanOperation(
+        () => this.eventRepository.delete(id),
+        ERROR_MESSAGES.EVENT_NOT_FOUND,
+        'Event deleted successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<null>(error);
     }
   }
 

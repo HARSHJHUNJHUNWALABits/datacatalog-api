@@ -4,8 +4,15 @@
  */
 import { IPropertyRepository } from '../dal/interfaces/IPropertyRepository';
 import { Property, CreatePropertyRequest, UpdatePropertyRequest, PropertyQueryParams, PaginatedResponse, ApiResponse } from '../types';
-import { validateProperty } from '../utils/validation';
 import { ERROR_MESSAGES } from '../constants';
+import { 
+  handleAsyncOperationWithMessage, 
+  handleAsyncOperationWithNullCheck, 
+  handleAsyncOperation, 
+  handleBooleanOperation,
+  handleAsyncOperationWithNullCheckAndMessage,
+  createErrorResponse
+} from '../utils/errorHandler';
 
 export class PropertyService {
   constructor(private readonly propertyRepository: IPropertyRepository) {}
@@ -17,16 +24,6 @@ export class PropertyService {
    */
   async createProperty(propertyData: CreatePropertyRequest): Promise<ApiResponse<Property>> {
     try {
-      // Validate input data
-      const validation = validateProperty(propertyData);
-      if (!validation.isValid) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.VALIDATION_ERROR,
-          message: validation.errors.map(err => `${err.field}: ${err.message}`).join(', '),
-        };
-      }
-
       // Check if property already exists
       const existingProperty = await this.propertyRepository.findByNameAndType(propertyData.name, propertyData.type);
       if (existingProperty) {
@@ -37,19 +34,12 @@ export class PropertyService {
       }
 
       // Create property
-      const property = await this.propertyRepository.create(propertyData);
-
-      return {
-        success: true,
-        data: property,
-        message: 'Property created successfully',
-      };
+      return await handleAsyncOperationWithMessage(
+        () => this.propertyRepository.create(propertyData),
+        'Property created successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<Property>(error);
     }
   }
 
@@ -59,27 +49,10 @@ export class PropertyService {
    * @returns Promise<ApiResponse<Property>> - API response with property
    */
   async getPropertyById(id: number): Promise<ApiResponse<Property>> {
-    try {
-      const property = await this.propertyRepository.findById(id);
-      
-      if (!property) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.PROPERTY_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        data: property,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return await handleAsyncOperationWithNullCheck(
+      () => this.propertyRepository.findById(id),
+      ERROR_MESSAGES.PROPERTY_NOT_FOUND
+    );
   }
 
   /**
@@ -88,20 +61,9 @@ export class PropertyService {
    * @returns Promise<ApiResponse<PaginatedResponse<Property>>> - API response with paginated properties
    */
   async getProperties(params: PropertyQueryParams): Promise<ApiResponse<PaginatedResponse<Property>>> {
-    try {
-      const properties = await this.propertyRepository.findAll(params);
-
-      return {
-        success: true,
-        data: properties,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return await handleAsyncOperation(
+      () => this.propertyRepository.findAll(params)
+    );
   }
 
   /**
@@ -112,18 +74,17 @@ export class PropertyService {
    */
   async updateProperty(id: number, propertyData: UpdatePropertyRequest): Promise<ApiResponse<Property>> {
     try {
-      // Validate input data
-      const validation = validateProperty(propertyData);
-      if (!validation.isValid) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.VALIDATION_ERROR,
-          message: validation.errors.map(err => `${err.field}: ${err.message}`).join(', '),
-        };
-      }
+      // Check if property exists and if there are conflicts in parallel
+      const [existingProperty, conflictingProperty] = await Promise.all([
+        this.propertyRepository.findById(id),
+        (propertyData.name || propertyData.type) ? 
+          this.propertyRepository.findByNameAndType(
+            propertyData.name || '', 
+            propertyData.type || ''
+          ) : 
+          Promise.resolve(null)
+      ]);
 
-      // Check if property exists
-      const existingProperty = await this.propertyRepository.findById(id);
       if (!existingProperty) {
         return {
           success: false,
@@ -137,7 +98,6 @@ export class PropertyService {
         const newType = propertyData.type || existingProperty.type;
         
         if (newName !== existingProperty.name || newType !== existingProperty.type) {
-          const conflictingProperty = await this.propertyRepository.findByNameAndType(newName, newType);
           if (conflictingProperty && conflictingProperty.id !== id) {
             return {
               success: false,
@@ -148,26 +108,13 @@ export class PropertyService {
       }
 
       // Update property
-      const updatedProperty = await this.propertyRepository.update(id, propertyData);
-      
-      if (!updatedProperty) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.PROPERTY_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        data: updatedProperty,
-        message: 'Property updated successfully',
-      };
+      return await handleAsyncOperationWithNullCheckAndMessage(
+        () => this.propertyRepository.update(id, propertyData),
+        ERROR_MESSAGES.PROPERTY_NOT_FOUND,
+        'Property updated successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<Property>(error);
     }
   }
 
@@ -188,25 +135,13 @@ export class PropertyService {
       }
 
       // Delete property
-      const deleted = await this.propertyRepository.delete(id);
-      
-      if (!deleted) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.PROPERTY_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        message: 'Property deleted successfully',
-      };
+      return await handleBooleanOperation(
+        () => this.propertyRepository.delete(id),
+        ERROR_MESSAGES.PROPERTY_NOT_FOUND,
+        'Property deleted successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<null>(error);
     }
   }
 

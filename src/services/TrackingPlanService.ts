@@ -17,8 +17,15 @@ import {
   CreateEventRequest,
   CreatePropertyRequest
 } from '../types';
-import { validateTrackingPlan } from '../utils/validation';
 import { ERROR_MESSAGES } from '../constants';
+import { 
+  handleAsyncOperationWithMessage, 
+  handleAsyncOperationWithNullCheck, 
+  handleAsyncOperation, 
+  handleBooleanOperation,
+  handleAsyncOperationWithNullCheckAndMessage,
+  createErrorResponse
+} from '../utils/errorHandler';
 
 export class TrackingPlanService {
   constructor(
@@ -34,16 +41,6 @@ export class TrackingPlanService {
    */
   async createTrackingPlan(trackingPlanData: CreateTrackingPlanRequest): Promise<ApiResponse<TrackingPlan>> {
     try {
-      // Validate input data
-      const validation = validateTrackingPlan(trackingPlanData);
-      if (!validation.isValid) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.VALIDATION_ERROR,
-          message: validation.errors.map(err => `${err.field}: ${err.message}`).join(', '),
-        };
-      }
-
       // Check if tracking plan already exists
       const existingTrackingPlan = await this.trackingPlanRepository.findByName(trackingPlanData.name);
       if (existingTrackingPlan) {
@@ -56,26 +53,23 @@ export class TrackingPlanService {
       // Process events and properties - create them if they don't exist
       const processedEvents = await this.processTrackingPlanEvents(trackingPlanData.events);
       if (!processedEvents.success) {
-        return processedEvents;
+        return {
+          success: false,
+          error: processedEvents.error || ERROR_MESSAGES.INTERNAL_ERROR,
+          message: processedEvents.message,
+        };
       }
 
       // Create tracking plan with processed events
-      const trackingPlan = await this.trackingPlanRepository.create({
-        ...trackingPlanData,
-        events: processedEvents.data!,
-      });
-
-      return {
-        success: true,
-        data: trackingPlan,
-        message: 'Tracking plan created successfully',
-      };
+      return await handleAsyncOperationWithMessage(
+        () => this.trackingPlanRepository.create({
+          ...trackingPlanData,
+          events: processedEvents.data!,
+        }),
+        'Tracking plan created successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<TrackingPlan>(error);
     }
   }
 
@@ -85,27 +79,10 @@ export class TrackingPlanService {
    * @returns Promise<ApiResponse<TrackingPlan>> - API response with tracking plan
    */
   async getTrackingPlanById(id: number): Promise<ApiResponse<TrackingPlan>> {
-    try {
-      const trackingPlan = await this.trackingPlanRepository.findById(id);
-      
-      if (!trackingPlan) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.TRACKING_PLAN_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        data: trackingPlan,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return await handleAsyncOperationWithNullCheck(
+      () => this.trackingPlanRepository.findById(id),
+      ERROR_MESSAGES.TRACKING_PLAN_NOT_FOUND
+    );
   }
 
   /**
@@ -114,20 +91,9 @@ export class TrackingPlanService {
    * @returns Promise<ApiResponse<PaginatedResponse<TrackingPlan>>> - API response with paginated tracking plans
    */
   async getTrackingPlans(params: TrackingPlanQueryParams): Promise<ApiResponse<PaginatedResponse<TrackingPlan>>> {
-    try {
-      const trackingPlans = await this.trackingPlanRepository.findAll(params);
-
-      return {
-        success: true,
-        data: trackingPlans,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return await handleAsyncOperation(
+      () => this.trackingPlanRepository.findAll(params)
+    );
   }
 
   /**
@@ -149,18 +115,13 @@ export class TrackingPlanService {
 
       // If events are being updated, process them
       if (trackingPlanData.events) {
-        const validation = validateTrackingPlan({ ...existingTrackingPlan, events: trackingPlanData.events });
-        if (!validation.isValid) {
-          return {
-            success: false,
-            error: ERROR_MESSAGES.VALIDATION_ERROR,
-            message: validation.errors.map(err => `${err.field}: ${err.message}`).join(', '),
-          };
-        }
-
         const processedEvents = await this.processTrackingPlanEvents(trackingPlanData.events);
         if (!processedEvents.success) {
-          return processedEvents;
+          return {
+            success: false,
+            error: processedEvents.error || ERROR_MESSAGES.INTERNAL_ERROR,
+            message: processedEvents.message,
+          };
         }
 
         trackingPlanData.events = processedEvents.data!;
@@ -178,26 +139,13 @@ export class TrackingPlanService {
       }
 
       // Update tracking plan
-      const updatedTrackingPlan = await this.trackingPlanRepository.update(id, trackingPlanData);
-      
-      if (!updatedTrackingPlan) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.TRACKING_PLAN_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        data: updatedTrackingPlan,
-        message: 'Tracking plan updated successfully',
-      };
+      return await handleAsyncOperationWithNullCheckAndMessage(
+        () => this.trackingPlanRepository.update(id, trackingPlanData),
+        ERROR_MESSAGES.TRACKING_PLAN_NOT_FOUND,
+        'Tracking plan updated successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<TrackingPlan>(error);
     }
   }
 
@@ -218,25 +166,13 @@ export class TrackingPlanService {
       }
 
       // Delete tracking plan
-      const deleted = await this.trackingPlanRepository.delete(id);
-      
-      if (!deleted) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.TRACKING_PLAN_NOT_FOUND,
-        };
-      }
-
-      return {
-        success: true,
-        message: 'Tracking plan deleted successfully',
-      };
+      return await handleBooleanOperation(
+        () => this.trackingPlanRepository.delete(id),
+        ERROR_MESSAGES.TRACKING_PLAN_NOT_FOUND,
+        'Tracking plan deleted successfully'
+      );
     } catch (error) {
-      return {
-        success: false,
-        error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
+      return createErrorResponse<null>(error);
     }
   }
 
@@ -247,9 +183,8 @@ export class TrackingPlanService {
    */
   private async processTrackingPlanEvents(events: TrackingPlanEvent[]): Promise<ApiResponse<TrackingPlanEvent[]>> {
     try {
-      const processedEvents: TrackingPlanEvent[] = [];
-
-      for (const event of events) {
+      // Process all events in parallel
+      const eventPromises = events.map(async (event) => {
         // Check if event exists, if not create it
         let existingEvent = await this.eventRepository.findByNameAndType(event.name, 'track'); // Default to 'track' type
         
@@ -265,18 +200,12 @@ export class TrackingPlanService {
         } else {
           // Check if description matches
           if (existingEvent.description !== event.description) {
-            return {
-              success: false,
-              error: ERROR_MESSAGES.EVENT_ALREADY_EXISTS,
-              message: `Event '${event.name}' already exists with a different description`,
-            };
+            throw new Error(`EVENT_CONFLICT:${event.name}`);
           }
         }
 
-        // Process properties for this event
-        const processedProperties: TrackingPlanProperty[] = [];
-        
-        for (const property of event.properties) {
+        // Process all properties for this event in parallel
+        const propertyPromises = event.properties.map(async (property) => {
           // Check if property exists, if not create it
           let existingProperty = await this.propertyRepository.findByNameAndType(property.name, property.type);
           
@@ -292,32 +221,55 @@ export class TrackingPlanService {
           } else {
             // Check if description matches
             if (existingProperty.description !== property.description) {
-              return {
-                success: false,
-                error: ERROR_MESSAGES.PROPERTY_ALREADY_EXISTS,
-                message: `Property '${property.name}' already exists with a different description`,
-              };
+              throw new Error(`PROPERTY_CONFLICT:${property.name}`);
             }
           }
 
-          processedProperties.push(property);
-        }
+          return property;
+        });
 
-        processedEvents.push({
+        // Wait for all properties to be processed
+        const processedProperties = await Promise.all(propertyPromises);
+
+        return {
           ...event,
           properties: processedProperties,
-        });
-      }
+        };
+      });
+
+      // Wait for all events to be processed
+      const processedEvents = await Promise.all(eventPromises);
 
       return {
         success: true,
         data: processedEvents,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Handle specific conflict errors
+      if (errorMessage.startsWith('EVENT_CONFLICT:')) {
+        const eventName = errorMessage.split(':')[1];
+        return {
+          success: false,
+          error: ERROR_MESSAGES.EVENT_ALREADY_EXISTS,
+          message: `Event '${eventName}' already exists with a different description`,
+        };
+      }
+      
+      if (errorMessage.startsWith('PROPERTY_CONFLICT:')) {
+        const propertyName = errorMessage.split(':')[1];
+        return {
+          success: false,
+          error: ERROR_MESSAGES.PROPERTY_ALREADY_EXISTS,
+          message: `Property '${propertyName}' already exists with a different description`,
+        };
+      }
+
       return {
         success: false,
         error: ERROR_MESSAGES.INTERNAL_ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        message: errorMessage,
       };
     }
   }
