@@ -45,9 +45,9 @@ export const DATABASE_CONFIG = {
 } as const;
 
 export const API_ENDPOINTS = {
-  EVENTS: '/api/v1/events',
-  PROPERTIES: '/api/v1/properties',
-  TRACKING_PLANS: '/api/v1/tracking-plans',
+  EVENTS: 'events',
+  PROPERTIES: 'properties',
+  TRACKING_PLANS: 'tracking-plans',
   HEALTH: '/health',
   DOCS: '/docs',
 } as const;
